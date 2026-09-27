@@ -89,7 +89,7 @@ export default function HomePage() {
                         </svg>
                         <span className="font-semibold text-sm text-white tracking-tight">GitHub Stats &amp; Streak</span>
                     </div>
-                    <span className="text-xs text-[#8b949e] font-mono">v1.2.0 • Dual-Card SVG</span>
+                    <span className="text-xs text-[#8b949e] font-mono">github / BizrStillLearning</span>
                 </div>
             </header>
 
@@ -229,7 +229,7 @@ export default function HomePage() {
                                                     : 'text-[#8b949e] hover:text-white'
                                             }`}
                                         >
-                                            HTML (Centered)
+                                            HTML
                                         </button>
                                         <button
                                             type="button"

@@ -2,7 +2,7 @@ import './global.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'My GitHub Stats & Streak',
+    title: 'GitHub Stats & Streak Generator',
     description: 'Dynamic SVG GitHub stats cards generator',
 };
 
