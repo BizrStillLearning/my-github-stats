@@ -1,3 +1,11 @@
+import './global.css';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'My GitHub Stats & Streak',
+    description: 'Dynamic SVG GitHub stats cards generator',
+};
+
 export default function RootLayout({
                                        children,
                                    }: {
@@ -5,7 +13,9 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
-        <body>{children}</body>
+        <body className="bg-[#09070f] text-slate-200 antialiased min-h-screen">
+        {children}
+        </body>
         </html>
     );
 }

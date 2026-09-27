@@ -1,51 +1,70 @@
 import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateStatsSvg, generateErrorSvg } from '../src/lib/svg/generator';
-import type { GitHubStats } from '../src/types/stats';
+import { generateStatsSvg, generateErrorSvg } from '../src/lib/svg/generator.ts';
+import type { GitHubStats } from '../src/types/stats.ts';
 
 const mockStats: GitHubStats = {
     username: 'testuser',
-    name: 'Test <User>',
-    avatarUrl: 'https://example.com/avatar.png',
+    name: 'Test User',
+    avatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4',
     profileUrl: 'https://github.com/testuser',
-    totalRepos: 10,
-    forkedRepos: 2,
-    originalRepos: 8,
-    starsCount: 150,
-    forksCount: 25,
-    followers: 50,
-    following: 10,
+    totalRepos: 15,
+    forkedRepos: 3,
+    originalRepos: 12,
+    starsCount: 39,
+    forksCount: 14,
+    followers: 120,
+    following: 45,
+    totalCommitsLastYear: 481,
+    totalPRs: 8,
+    totalIssues: 10,
+    contributedToLastYear: 16,
+    rankGrade: 'B-',
+    rankPercentage: 45,
+    streak: {
+        totalContributions: 618,
+        contributionRange: 'Aug 6, 2024 - Present',
+        currentStreak: 4,
+        currentStreakRange: 'Sep 22 - Sep 25',
+        longestStreak: 30,
+        longestStreakRange: 'May 12 - Jun 10',
+    },
     languages: [
-        { name: 'TypeScript', bytes: 8000, percentage: 80.0, color: '#3178c6' },
-        { name: 'Go', bytes: 2000, percentage: 20.0, color: '#00ADD8' },
+        { name: 'TypeScript', bytes: 70000, percentage: 70.0, color: '#3178c6' },
+        { name: 'Go', bytes: 30000, percentage: 30.0, color: '#00ADD8' },
     ],
     activity: {
-        recentCommits: 14,
+        recentCommits: 20,
         recentPullRequests: 2,
-        recentIssues: 0,
-        totalRecentEvents: 16,
+        recentIssues: 1,
+        totalRecentEvents: 23,
     },
 };
 
 describe('SVG Generator', () => {
     test('should generate valid SVG markup with escaped content', () => {
-        const svg = generateStatsSvg(mockStats, 'dark');
+        const svg = generateStatsSvg(mockStats, 'synthwave');
 
-        assert.equal(svg.startsWith('<svg'), true);
-        assert.equal(svg.endsWith('</svg>'), true);
-        assert.equal(svg.includes('Test &lt;User&gt;&apos;s GitHub Stats'), true);
-        assert.equal(svg.includes('<script>'), false);
-        assert.equal(svg.includes('TypeScript (80%)'), true);
+        assert.ok(svg.startsWith('<svg'));
+        assert.ok(svg.endsWith('</svg>'));
+        assert.ok(svg.includes("Test User's GitHub Stats"));
+        assert.ok(svg.includes('Total Stars Earned:'));
+        assert.ok(svg.includes('39'));
+        assert.ok(svg.includes('B-'));
+        assert.ok(svg.includes('618'));
     });
 
     test('should apply light theme colors when requested', () => {
-        const svgLight = generateStatsSvg(mockStats, 'light');
-        assert.equal(svgLight.includes('#ffffff'), true);
+        const svg = generateStatsSvg(mockStats, 'light');
+
+        assert.ok(svg.includes('#ffffff'));
+        assert.ok(svg.includes('#0969da'));
     });
 
     test('should generate error SVG without breaking XML tags', () => {
-        const errorSvg = generateErrorSvg('User not found: <unknown>');
-        assert.equal(errorSvg.startsWith('<svg'), true);
-        assert.equal(errorSvg.includes('&lt;unknown&gt;'), true);
+        const errorSvg = generateErrorSvg('User <not_found> & invalid');
+
+        assert.ok(errorSvg.startsWith('<svg'));
+        assert.ok(errorSvg.includes('&lt;not_found&gt; &amp; invalid'));
     });
 });

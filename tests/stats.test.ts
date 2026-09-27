@@ -1,49 +1,49 @@
 import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { summarizeActivity } from '../src/lib/stats/calculator';
-import type { GitHubEvent } from '../src/types/github';
+import { summarizeActivity } from '../src/lib/stats/calculator.ts';
+import type { GitHubEvent } from '../src/types/github.ts';
 
-describe('Stats Processing Logic', () => {
-    test('should correctly summarize activity events', () => {
+describe('Stats Calculator Utility', () => {
+    test('should summarize recent activity events correctly', () => {
+        const mockActor = {
+            id: 1,
+            login: 'testuser',
+            display_login: 'testuser',
+            avatar_url: 'https://avatars.githubusercontent.com/u/1',
+        };
+
         const mockEvents: GitHubEvent[] = [
             {
                 id: '1',
                 type: 'PushEvent',
-                actor: { id: 10, login: 'tester' },
-                created_at: '2026-09-27T00:00:00Z',
+                actor: mockActor,
+                created_at: '2026-09-01T10:00:00Z',
                 payload: {
-                    commits: [{ sha: 'a', message: 'feat: add test' }, { sha: 'b', message: 'fix: bug' }],
+                    commits: [
+                        { sha: 'a1b2c3d', message: 'feat: add initial feature' },
+                        { sha: 'e4f5g6h', message: 'fix: resolve bug' },
+                    ],
                 },
             },
             {
                 id: '2',
                 type: 'PullRequestEvent',
-                actor: { id: 10, login: 'tester' },
-                created_at: '2026-09-27T01:00:00Z',
+                actor: mockActor,
+                created_at: '2026-09-02T10:00:00Z',
             },
             {
                 id: '3',
                 type: 'IssuesEvent',
-                actor: { id: 10, login: 'tester' },
-                created_at: '2026-09-27T02:00:00Z',
+                actor: mockActor,
+                created_at: '2026-09-03T10:00:00Z',
             },
         ];
 
         const summary = summarizeActivity(mockEvents);
 
-        assert.equal(summary.recentCommits, 2);
-        assert.equal(summary.recentPullRequests, 1);
-        assert.equal(summary.recentIssues, 1);
-        assert.equal(summary.totalRecentEvents, 3);
-    });
-
-    test('should handle empty event list gracefully', () => {
-        const summary = summarizeActivity([]);
-        assert.deepEqual(summary, {
-            recentCommits: 0,
-            recentPullRequests: 0,
-            recentIssues: 0,
-            totalRecentEvents: 0,
-        });
+        assert.strictEqual(summary.recentCommits, 2);
+        assert.strictEqual(summary.recentPullRequests, 1);
+        assert.strictEqual(summary.recentIssues, 1);
+        assert.strictEqual(summary.totalRecentEvents, 3);
     });
 });

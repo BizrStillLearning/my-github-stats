@@ -1,125 +1,129 @@
-import type { GitHubStats } from '../../types/stats';
+import type { GitHubStats, CardOptions } from '../../types/stats';
 import { escapeXml } from '../../utils/sanitize';
 import { getTheme } from './themes';
 
-function formatNumber(num: number): string {
-    if (num >= 1_000_000) {
-        return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
-    }
-    if (num >= 1_000) {
-        return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
-    }
-    return num.toString();
-}
+export function generateStatsSvg(
+    stats: GitHubStats,
+    optionsOrTheme?: string | CardOptions
+): string {
+    const options: CardOptions =
+        typeof optionsOrTheme === 'string'
+            ? { theme: optionsOrTheme, hideBorder: false }
+            : optionsOrTheme ?? {};
 
-export function generateStatsSvg(stats: GitHubStats, themeName?: string | null): string {
-    const theme = getTheme(themeName);
-    const cleanName = escapeXml(stats.name);
-    const cleanUsername = escapeXml(stats.username);
+    const theme = getTheme(options.theme);
+    const hideBorder = Boolean(options.hideBorder);
+    const name = escapeXml(stats.name || stats.username);
 
-    const topLanguages = stats.languages.slice(0, 4);
+    const ringRadius = 36;
+    const circumference = 2 * Math.PI * ringRadius;
+    const progressOffset = circumference - (stats.rankPercentage / 100) * circumference;
 
-    let currentX = 25;
-    const barWidthTotal = 445;
-    const progressBars = topLanguages
-        .map((lang) => {
-            const segmentWidth = (lang.percentage / 100) * barWidthTotal;
-            const rect = `<rect x="${currentX.toFixed(1)}" y="180" width="${segmentWidth.toFixed(1)}" height="8" fill="${lang.color}" rx="2"/>`;
-            currentX += segmentWidth;
-            return rect;
-        })
-        .join('\n      ');
+    const strokeAttr = hideBorder
+        ? 'stroke="transparent" stroke-width="0"'
+        : `stroke="${theme.border}" stroke-width="1.5"`;
 
-    const languageLegends = topLanguages
-        .map((lang, index) => {
-            const x = 25 + (index % 2) * 220;
-            const y = 210 + Math.floor(index / 2) * 20;
-            const cleanLangName = escapeXml(lang.name);
-            return `
-      <circle cx="${x}" cy="${y - 4}" r="4" fill="${lang.color}" />
-      <text x="${x + 12}" y="${y}" class="text-sub" fill="${theme.textColor}">${cleanLangName} (${lang.percentage}%)</text>`;
-        })
-        .join('');
+    const starIcon = `<path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" stroke="${theme.label}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const commitIcon = `<circle cx="12" cy="12" r="10" fill="none" stroke="${theme.label}" stroke-width="2"/><polyline points="12 6 12 12 16 14" fill="none" stroke="${theme.label}" stroke-width="2" stroke-linecap="round"/>`;
+    const prIcon = `<circle cx="18" cy="18" r="3" fill="none" stroke="${theme.label}" stroke-width="2"/><circle cx="6" cy="6" r="3" fill="none" stroke="${theme.label}" stroke-width="2"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12" fill="none" stroke="${theme.label}" stroke-width="2" stroke-linecap="round"/>`;
+    const issueIcon = `<circle cx="12" cy="12" r="10" fill="none" stroke="${theme.label}" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="${theme.label}" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="${theme.label}" stroke-width="2" stroke-linecap="round"/>`;
+    const contribIcon = `<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" fill="none" stroke="${theme.label}" stroke-width="2"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="none" stroke="${theme.label}" stroke-width="2"/>`;
 
-    return `<svg width="495" height="255" viewBox="0 0 495 255" fill="none" xmlns="http://www.w3.org/2000/svg">
+    return `<svg width="890" height="200" viewBox="0 0 890 200" fill="none" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; }
-    .stat-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 400; }
-    .stat-val { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 700; }
-    .text-sub { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; }
+    .header { font: 700 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.title}; }
+    .label { font: 500 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.label}; }
+    .value { font: 700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.value}; }
+    .grade-text { font: 800 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.value}; text-anchor: middle; }
+    .big-num { font: 800 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.title}; text-anchor: middle; }
+    .streak-title { font: 700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.title}; text-anchor: middle; }
+    .streak-title-active { font: 700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.fire}; text-anchor: middle; }
+    .sub-date { font: 400 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: ${theme.label}; text-anchor: middle; }
   </style>
 
-  <!-- Card Border & Background -->
-  <rect x="0.5" y="0.5" width="494" height="254" rx="10" fill="${theme.background}" stroke="${theme.borderColor}"/>
+  <g transform="translate(10, 10)">
+    <rect width="400" height="180" rx="8" fill="${theme.background}" ${strokeAttr}/>
 
-  <!-- Title -->
-  <text x="25" y="38" class="title" fill="${theme.titleColor}">${cleanName}&apos;s GitHub Stats</text>
-  <text x="470" y="38" text-anchor="end" class="text-sub" fill="${theme.iconColor}">@${cleanUsername}</text>
+    <text x="20" y="32" class="header">${name}'s GitHub Stats</text>
 
-  <line x1="25" y1="52" x2="470" y2="52" stroke="${theme.borderColor}" stroke-width="1"/>
-
-  <!-- Left Stats Column -->
-  <g transform="translate(25, 75)">
-    <!-- Stars -->
-    <g transform="translate(0, 0)">
-      <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z" fill="${theme.iconColor}"/>
-      <text x="25" y="12" class="stat-label" fill="${theme.textColor}">Total Stars:</text>
-      <text x="140" y="12" class="stat-val" fill="${theme.textColor}">${formatNumber(stats.starsCount)}</text>
+    <g transform="translate(20, 48)">
+      <svg width="16" height="16" viewBox="0 0 24 24">${starIcon}</svg>
+      <text x="26" y="13" class="label">Total Stars Earned:</text>
+      <text x="235" y="13" class="value">${stats.starsCount}</text>
     </g>
 
-    <!-- Forks -->
-    <g transform="translate(0, 26)">
-      <path d="M5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm0 2.122a2.25 2.25 0 10-1.5 0v.878A2.25 2.25 0 005.75 8.5h4.5A2.25 2.25 0 0012.5 6.25v-.878a2.25 2.25 0 10-1.5 0v.878a.75.75 0 01-.75.75h-4.5A.75.75 0 015 6.25v-.878zM10.25 4a.75.75 0 111.5 0 .75.75 0 01-1.5 0zM8 10a.75.75 0 100-1.5.75.75 0 000 1.5zm0 1.5a2.25 2.25 0 110-4.5 2.25 2.25 0 010 4.5z" fill="${theme.iconColor}"/>
-      <text x="25" y="12" class="stat-label" fill="${theme.textColor}">Total Forks:</text>
-      <text x="140" y="12" class="stat-val" fill="${theme.textColor}">${formatNumber(stats.forksCount)}</text>
+    <g transform="translate(20, 72)">
+      <svg width="16" height="16" viewBox="0 0 24 24">${commitIcon}</svg>
+      <text x="26" y="13" class="label">Total Commits (last year):</text>
+      <text x="235" y="13" class="value">${stats.totalCommitsLastYear}</text>
     </g>
 
-    <!-- Repositories -->
-    <g transform="translate(0, 52)">
-      <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5v-9zm10.5-1h-8a1 1 0 00-1 1v6.708A2.486 2.486 0 014.5 9h8.5V1.5z" fill="${theme.iconColor}"/>
-      <text x="25" y="12" class="stat-label" fill="${theme.textColor}">Original Repos:</text>
-      <text x="140" y="12" class="stat-val" fill="${theme.textColor}">${formatNumber(stats.originalRepos)}</text>
-    </g>
-  </g>
-
-  <!-- Right Stats Column -->
-  <g transform="translate(260, 75)">
-    <!-- Followers -->
-    <g transform="translate(0, 0)">
-      <path d="M5.5 3.5a2 2 0 100 4 2 2 0 000-4zM2 5.5a3.5 3.5 0 117 0 3.5 3.5 0 01-7 0zM1.5 13a2.5 2.5 0 012.5-2.5h3a2.5 2.5 0 012.5 2.5v1a.75.75 0 01-1.5 0v-1a1 1 0 00-1-1H4a1 1 0 00-1 1v1a.75.75 0 01-1.5 0v-1z" fill="${theme.iconColor}"/>
-      <text x="25" y="12" class="stat-label" fill="${theme.textColor}">Followers:</text>
-      <text x="140" y="12" class="stat-val" fill="${theme.textColor}">${formatNumber(stats.followers)}</text>
+    <g transform="translate(20, 96)">
+      <svg width="16" height="16" viewBox="0 0 24 24">${prIcon}</svg>
+      <text x="26" y="13" class="label">Total PRs:</text>
+      <text x="235" y="13" class="value">${stats.totalPRs}</text>
     </g>
 
-    <!-- Recent Commits -->
-    <g transform="translate(0, 26)">
-      <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.002 4.002 0 017.86 0h3.32a.75.75 0 110 1.5h-3.32z" fill="${theme.iconColor}"/>
-      <text x="25" y="12" class="stat-label" fill="${theme.textColor}">Recent Commits:</text>
-      <text x="140" y="12" class="stat-val" fill="${theme.textColor}">${stats.activity.recentCommits}</text>
+    <g transform="translate(20, 120)">
+      <svg width="16" height="16" viewBox="0 0 24 24">${issueIcon}</svg>
+      <text x="26" y="13" class="label">Total Issues:</text>
+      <text x="235" y="13" class="value">${stats.totalIssues}</text>
     </g>
 
-    <!-- Recent PRs -->
-    <g transform="translate(0, 52)">
-      <path d="M7.177 3.073L9.573.677A.25.25 0 0110 .854v4.792a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-1.5.75a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm1.5 7.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-1.5.75a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" fill="${theme.iconColor}"/>
-      <text x="25" y="12" class="stat-label" fill="${theme.textColor}">Recent PRs:</text>
-      <text x="140" y="12" class="stat-val" fill="${theme.textColor}">${stats.activity.recentPullRequests}</text>
+    <g transform="translate(20, 144)">
+      <svg width="16" height="16" viewBox="0 0 24 24">${contribIcon}</svg>
+      <text x="26" y="13" class="label">Contributed to (last year):</text>
+      <text x="235" y="13" class="value">${stats.contributedToLastYear}</text>
+    </g>
+
+    <g transform="translate(325, 102)">
+      <circle cx="0" cy="0" r="${ringRadius}" fill="none" stroke="${theme.ringBg}" stroke-width="6"/>
+      <circle cx="0" cy="0" r="${ringRadius}" fill="none" stroke="${theme.ringProgress}" stroke-width="6"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${progressOffset}"
+              stroke-linecap="round" transform="rotate(-90)"/>
+      <text x="0" y="8" class="grade-text">${stats.rankGrade}</text>
     </g>
   </g>
 
-  <!-- Languages Progress Bar -->
-  <rect x="25" y="180" width="${barWidthTotal}" height="8" rx="2" fill="${theme.barTrackColor}"/>
-  ${progressBars}
+  <g transform="translate(425, 10)">
+    <rect width="455" height="180" rx="8" fill="${theme.background}" ${strokeAttr}/>
 
-  <!-- Language Legends -->
-  ${languageLegends}
+    <g transform="translate(85, 0)">
+      <text x="0" y="65" class="big-num">${stats.streak.totalContributions}</text>
+      <text x="0" y="98" class="streak-title">Total Contributions</text>
+      <text x="0" y="128" class="sub-date">${stats.streak.contributionRange}</text>
+    </g>
+
+    <line x1="160" y1="25" x2="160" y2="155" stroke="${theme.divider}" stroke-width="1.5"/>
+
+    <g transform="translate(235, 75)">
+      <circle cx="0" cy="0" r="38" fill="none" stroke="${theme.ringBg}" stroke-width="4"/>
+      <g transform="translate(-8, -48)">
+        <path d="M8.5 2C8.5 2 4 6.5 4 10.5C4 13.5 6 15 8.5 15C11 15 13 13.5 13 10.5C13 6.5 8.5 2 8.5 2Z" fill="${theme.fire}"/>
+        <path d="M8.5 7C8.5 7 6 9.5 6 11.5C6 13 7 14 8.5 14C10 14 11 13 11 11.5C11 9.5 8.5 7 8.5 7Z" fill="${theme.background}"/>
+      </g>
+      <text x="0" y="9" class="big-num" style="fill: ${theme.fire}; font-size: 26px;">${stats.streak.currentStreak}</text>
+      <text x="0" y="60" class="streak-title-active">Current Streak</text>
+      <text x="0" y="80" class="sub-date" style="fill: #8b949e;">${stats.streak.currentStreakRange}</text>
+    </g>
+
+    <line x1="310" y1="25" x2="310" y2="155" stroke="${theme.divider}" stroke-width="1.5"/>
+
+    <!-- Kolom 3: Longest Streak -->
+    <g transform="translate(385, 0)">
+      <text x="0" y="65" class="big-num">${stats.streak.longestStreak}</text>
+      <text x="0" y="98" class="streak-title">Longest Streak</text>
+      <text x="0" y="128" class="sub-date">${stats.streak.longestStreakRange}</text>
+    </g>
+  </g>
 </svg>`;
 }
 
 export function generateErrorSvg(message: string): string {
-    const cleanMessage = escapeXml(message);
-    return `<svg width="495" height="120" viewBox="0 0 495 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="495" height="120" rx="10" fill="#0d1117" stroke="#da3633"/>
-  <text x="25" y="45" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#f85149">GitHub Stats Error</text>
-  <text x="25" y="80" font-family="-apple-system, sans-serif" font-size="13" fill="#c9d1d9">${cleanMessage}</text>
+    const safeMessage = escapeXml(message);
+    return `<svg width="500" height="120" viewBox="0 0 500 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="500" height="120" rx="8" fill="#2b213a" stroke="#ef3550" stroke-width="1.5"/>
+  <text x="250" y="55" fill="#ef3550" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="700" text-anchor="middle">Error Generating Stats</text>
+  <text x="250" y="80" fill="#e2e9ec" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" text-anchor="middle">${safeMessage}</text>
 </svg>`;
 }

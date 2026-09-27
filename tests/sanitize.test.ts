@@ -1,6 +1,6 @@
 import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { isValidGithubUsername, escapeXml } from '../src/utils/sanitize';
+import { isValidGithubUsername, escapeXml } from '../src/utils/sanitize.ts';
 
 describe('Sanitize & Validation Utility', () => {
     test('should accept valid GitHub usernames', () => {

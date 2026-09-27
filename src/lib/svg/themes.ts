@@ -1,34 +1,167 @@
-export interface CardTheme {
-    background: string;
-    borderColor: string;
-    titleColor: string;
-    textColor: string;
-    iconColor: string;
-    barTrackColor: string;
-}
+import { ThemeColors, ThemeName } from '../../types/stats';
 
-export const THEMES: Record<string, CardTheme> = {
+export const THEMES: Record<ThemeName, ThemeColors> = {
+    synthwave: {
+        background: '#2b213a',
+        cardBg: '#241b31',
+        border: '#3b2d52',
+        divider: '#4d3b66',
+        title: '#ffffff',
+        label: '#ef3550',
+        value: '#ef3550',
+        accent: '#ef3550',
+        fire: '#f7931a',
+        ringBg: '#473b5a',
+        ringProgress: '#ef3550',
+    },
+    dracula: {
+        background: '#282a36',
+        cardBg: '#21222c',
+        border: '#44475a',
+        divider: '#44475a',
+        title: '#bd93f9',
+        label: '#ff79c6',
+        value: '#ff79c6',
+        accent: '#50fa7b',
+        fire: '#ffb86c',
+        ringBg: '#44475a',
+        ringProgress: '#ff79c6',
+    },
+    nord: {
+        background: '#2e3440',
+        cardBg: '#3b4252',
+        border: '#4c566a',
+        divider: '#4c566a',
+        title: '#88c0d0',
+        label: '#81a1c1',
+        value: '#81a1c1',
+        accent: '#88c0d0',
+        fire: '#d08770',
+        ringBg: '#434c5e',
+        ringProgress: '#88c0d0',
+    },
+    tokyonight: {
+        background: '#1a1b26',
+        cardBg: '#16161e',
+        border: '#292e42',
+        divider: '#292e42',
+        title: '#7aa2f7',
+        label: '#bb9af7',
+        value: '#bb9af7',
+        accent: '#7dcfff',
+        fire: '#ff9e64',
+        ringBg: '#24283b',
+        ringProgress: '#7aa2f7',
+    },
+    gruvbox: {
+        background: '#282828',
+        cardBg: '#1d2021',
+        border: '#504945',
+        divider: '#504945',
+        title: '#fabd2f',
+        label: '#fe8019',
+        value: '#fe8019',
+        accent: '#b8bb26',
+        fire: '#fe8019',
+        ringBg: '#3c3836',
+        ringProgress: '#fe8019',
+    },
+    catppuccin: {
+        background: '#1e1e2e',
+        cardBg: '#181825',
+        border: '#313244',
+        divider: '#313244',
+        title: '#cba6f7',
+        label: '#f38ba8',
+        value: '#f38ba8',
+        accent: '#89b4fa',
+        fire: '#fab387',
+        ringBg: '#313244',
+        ringProgress: '#f38ba8',
+    },
+    onedark: {
+        background: '#282c34',
+        cardBg: '#21252b',
+        border: '#3e4451',
+        divider: '#3e4451',
+        title: '#61afef',
+        label: '#e06c75',
+        value: '#e06c75',
+        accent: '#98c379',
+        fire: '#d19a66',
+        ringBg: '#353b45',
+        ringProgress: '#e06c75',
+    },
+    monokai: {
+        background: '#272822',
+        cardBg: '#1e1f1c',
+        border: '#49483e',
+        divider: '#49483e',
+        title: '#a6e22e',
+        label: '#f92672',
+        value: '#f92672',
+        accent: '#66d9ef',
+        fire: '#fd971f',
+        ringBg: '#3e3d32',
+        ringProgress: '#f92672',
+    },
+    cobalt2: {
+        background: '#193549',
+        cardBg: '#122738',
+        border: '#1f4662',
+        divider: '#1f4662',
+        title: '#ffc600',
+        label: '#0088ff',
+        value: '#0088ff',
+        accent: '#3ad900',
+        fire: '#ff9d00',
+        ringBg: '#1f4662',
+        ringProgress: '#ffc600',
+    },
+    radical: {
+        background: '#141321',
+        cardBg: '#0f0e1a',
+        border: '#2e2b44',
+        divider: '#2e2b44',
+        title: '#fe428e',
+        label: '#a9fef7',
+        value: '#a9fef7',
+        accent: '#f8d847',
+        fire: '#fe428e',
+        ringBg: '#2e2b44',
+        ringProgress: '#fe428e',
+    },
     dark: {
         background: '#0d1117',
-        borderColor: '#30363d',
-        titleColor: '#58a6ff',
-        textColor: '#c9d1d9',
-        iconColor: '#8b949e',
-        barTrackColor: '#21262d',
+        cardBg: '#161b22',
+        border: '#30363d',
+        divider: '#30363d',
+        title: '#ffffff',
+        label: '#58a6ff',
+        value: '#58a6ff',
+        accent: '#58a6ff',
+        fire: '#f7931a',
+        ringBg: '#30363d',
+        ringProgress: '#58a6ff',
     },
     light: {
         background: '#ffffff',
-        borderColor: '#d0d7de',
-        titleColor: '#0969da',
-        textColor: '#24292f',
-        iconColor: '#57606a',
-        barTrackColor: '#eaeef2',
+        cardBg: '#f6f8fa',
+        border: '#d0d7de',
+        divider: '#d0d7de',
+        title: '#1f2328',
+        label: '#0969da',
+        value: '#0969da',
+        accent: '#0969da',
+        fire: '#bf8700',
+        ringBg: '#eaeef2',
+        ringProgress: '#0969da',
     },
 };
 
-export function getTheme(themeName?: string | null): CardTheme {
-    if (themeName && themeName.toLowerCase() === 'light') {
-        return THEMES.light;
-    }
-    return THEMES.dark;
+export const AVAILABLE_THEMES = Object.keys(THEMES) as ThemeName[];
+
+export function getTheme(themeName?: string | null): ThemeColors {
+    const normalized = (themeName?.toLowerCase() ?? 'synthwave') as ThemeName;
+    return THEMES[normalized] ?? THEMES.synthwave;
 }

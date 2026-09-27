@@ -1,58 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchUserStatsWithCache } from '@/lib/cache/stats';
+import { getOrFetchStats } from '@/lib/cache/stats';
 import { generateStatsSvg, generateErrorSvg } from '@/lib/svg/generator';
 import { isValidGithubUsername } from '@/utils/sanitize';
-import { GitHubApiError } from '@/lib/github/errors';
-
-interface RouteContext {
-    params: Promise<{
-        username: string;
-    }>;
-}
 
 export async function GET(
     request: NextRequest,
-    context: RouteContext
-): Promise<NextResponse> {
-    const { searchParams } = new URL(request.url);
-    const theme = searchParams.get('theme');
-
-    const svgHeaders = {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=900',
-    };
-
+    context: { params: Promise<{ username: string }> }
+) {
     try {
         const { username } = await context.params;
 
-        if (!username || !isValidGithubUsername(username)) {
-            const errorSvg = generateErrorSvg('Invalid GitHub username format');
+        if (!isValidGithubUsername(username)) {
+            const errorSvg = generateErrorSvg('Invalid GitHub username');
             return new NextResponse(errorSvg, {
                 status: 400,
-                headers: svgHeaders,
+                headers: { 'Content-Type': 'image/svg+xml; charset=utf-8' },
             });
         }
 
-        const stats = await fetchUserStatsWithCache(username);
-        const svgContent = generateStatsSvg(stats, theme);
+        const { searchParams } = new URL(request.url);
+        const theme = searchParams.get('theme') || 'synthwave';
+        const hideBorderParam = searchParams.get('hide_border');
+        const hideBorder = hideBorderParam === 'true' || hideBorderParam === '1';
 
-        return new NextResponse(svgContent, {
+        const stats = await getOrFetchStats(username);
+        const svg = generateStatsSvg(stats, { theme, hideBorder });
+
+        return new NextResponse(svg, {
             status: 200,
-            headers: svgHeaders,
+            headers: {
+                'Content-Type': 'image/svg+xml; charset=utf-8',
+                'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=900',
+            },
         });
     } catch (error: unknown) {
-        let errorMessage = 'An error occurred while generating stats';
-        let statusCode = 500;
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        console.error('Error generating card SVG:', error);
+        const errorSvg = generateErrorSvg(message);
 
-        if (error instanceof GitHubApiError) {
-            errorMessage = error.message;
-            statusCode = error.status;
-        }
-
-        const errorSvg = generateErrorSvg(errorMessage);
         return new NextResponse(errorSvg, {
-            status: statusCode,
-            headers: svgHeaders,
+            status: 200,
+            headers: {
+                'Content-Type': 'image/svg+xml; charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+            },
         });
     }
 }

@@ -1,27 +1,35 @@
-import { unstable_cache } from 'next/cache';
 import { getUser, getRepositories, getUserEvents } from '@/lib/github/client';
 import { processGitHubStats } from '@/lib/stats/calculator';
-import { GitHubStats } from '@/types/stats';
+import type { GitHubStats } from '@/types/stats';
 
-const CACHE_TTL_SECONDS = 1800;
+interface CacheEntry {
+    stats: GitHubStats;
+    expiresAt: number;
+}
 
-export async function fetchUserStatsWithCache(username: string): Promise<GitHubStats> {
-    const getCachedStats = unstable_cache(
-        async (targetUser: string) => {
-            const [user, repos, events] = await Promise.all([
-                getUser(targetUser),
-                getRepositories(targetUser),
-                getUserEvents(targetUser).catch(() => []),
-            ]);
+const STATS_CACHE = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 30 * 60 * 1000;
 
-            return processGitHubStats(user, repos, events);
-        },
-        ['github-user-stats'],
-        {
-            revalidate: CACHE_TTL_SECONDS,
-            tags: [`stats-${username.toLowerCase()}`],
-        }
-    );
+export async function getOrFetchStats(username: string): Promise<GitHubStats> {
+    const normalizedKey = username.toLowerCase().trim();
+    const cached = STATS_CACHE.get(normalizedKey);
 
-    return getCachedStats(username);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.stats;
+    }
+
+    const [user, repos, events] = await Promise.all([
+        getUser(username),
+        getRepositories(username),
+        getUserEvents(username),
+    ]);
+
+    const stats = await processGitHubStats(user, repos, events);
+
+    STATS_CACHE.set(normalizedKey, {
+        stats,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+
+    return stats;
 }

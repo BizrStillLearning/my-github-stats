@@ -1,68 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchUserStatsWithCache } from '@/lib/cache/stats';
+import { getOrFetchStats } from '@/lib/cache/stats';
 import { isValidGithubUsername } from '@/utils/sanitize';
-import { GitHubApiError } from '@/lib/github/errors';
-import { ApiResponse, GitHubStats } from '@/types/stats';
-
-interface RouteContext {
-    params: Promise<{
-        username: string;
-    }>;
-}
 
 export async function GET(
     _request: NextRequest,
-    context: RouteContext
-): Promise<NextResponse<ApiResponse<GitHubStats>>> {
+    context: { params: Promise<{ username: string }> }
+) {
     try {
         const { username } = await context.params;
 
-        if (!username || !isValidGithubUsername(username)) {
+        if (!isValidGithubUsername(username)) {
             return NextResponse.json(
                 {
                     success: false,
                     error: {
                         code: 'INVALID_USERNAME',
-                        message: 'Invalid GitHub username format',
+                        message: 'Invalid GitHub username provided',
                     },
                 },
                 { status: 400 }
             );
         }
 
-        const stats = await fetchUserStatsWithCache(username);
-
-        return NextResponse.json(
-            {
-                success: true,
-                data: stats,
-            },
-            {
-                headers: {
-                    'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=900',
-                },
-            }
-        );
+        const stats = await getOrFetchStats(username);
+        return NextResponse.json({ success: true, data: stats });
     } catch (error: unknown) {
-        if (error instanceof GitHubApiError) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: {
-                        code: error.code,
-                        message: error.message,
-                    },
-                },
-                { status: error.status }
-            );
-        }
+        console.error('Error fetching stats API:', error);
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
 
         return NextResponse.json(
             {
                 success: false,
                 error: {
-                    code: 'INTERNAL_ERROR',
-                    message: 'An unexpected internal server error occurred',
+                    code: 'FETCH_ERROR',
+                    message,
                 },
             },
             { status: 500 }
